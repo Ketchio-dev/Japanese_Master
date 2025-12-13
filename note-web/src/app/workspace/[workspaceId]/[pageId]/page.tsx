@@ -8,6 +8,7 @@ import DatabaseView from "@/components/DatabaseView";
 import { Share, MoreHorizontal } from "lucide-react";
 import SettingsModal from "@/components/SettingsModal";
 import AIAssistant from "@/components/AIAssistant";
+import PageMenu from "@/components/PageMenu";
 
 export default function PageEditor() {
     const params = useParams();
@@ -111,30 +112,76 @@ export default function PageEditor() {
                     >
                         <Share size={14} /> Share
                     </button>
-                    <button className="text-gray-400 hover:text-black">
-                        <MoreHorizontal size={14} />
-                    </button>
+                    <PageMenu
+                        page={page}
+                        onUpdate={async (updates) => {
+                            // Optimistic update
+                            setPage((prev: any) => ({ ...prev, ...updates }));
+                            // Persist
+                            await updatePage(pageId, updates);
+                        }}
+                        onDelete={async () => {
+                            if (confirm("Are you sure?")) {
+                                // In real app, delete and redirect
+                                await updatePage(pageId, { section: 'private' }); // Soft delete/archive for demo
+                                alert("Deleted (Archived)");
+                            }
+                        }}
+                        onDuplicate={() => {
+                            alert("Duplicate feature coming soon!");
+                        }}
+                    />
                 </div>
 
-                {/* Title Input */}
-                <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Untitled"
-                    className="w-full text-4xl font-bold text-gray-900 placeholder-gray-300 border-none focus:outline-none bg-transparent mb-4 mt-8"
-                />
+                <div className={`mx-auto w-full px-12 relative -mt-8 pb-32 transition-all duration-300
+                ${page.fullWidth ? 'max-w-full' : 'max-w-4xl'}
+                ${page.font === 'serif' ? 'font-serif' : page.font === 'mono' ? 'font-mono' : 'font-sans'}
+                ${page.smallText ? 'text-sm' : ''}
+            `}>
+                    {/* Icon */}
+                    {icon && (
+                        <div className="relative group w-20 h-20 -mt-10 mb-4 bg-white rounded-full text-6xl shadow-sm border border-gray-100 flex items-center justify-center cursor-pointer select-none" onClick={() => {
+                            if (page.locked) return;
+                            const newIcon = window.prompt("Enter an emoji:", icon);
+                            if (newIcon) setIcon(newIcon);
+                        }}>
+                            {icon}
+                            {!page.locked && (
+                                <button onClick={(e) => { e.stopPropagation(); setIcon(""); }} className="absolute -top-1 -right-1 bg-gray-200 hover:bg-red-100 hover:text-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition">
+                                    <Share size={10} className="rotate-45" /> {/* Use X icon ideally, effectively remove */}
+                                </button>
+                            )}
+                        </div>
+                    )}
 
-                {/* Editor */}
-                <Editor content={content} onChange={setContent} />
+                    {/* Title Input */}
+                    <input
+                        type="text"
+                        value={title}
+                        readOnly={page.locked}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Untitled"
+                        className={`w-full text-4xl font-bold placeholder-gray-300 border-none focus:outline-none bg-transparent mb-4 mt-8
+                        ${page.locked ? 'text-gray-600 cursor-default' : 'text-gray-900'}
+                    `}
+                    />
 
-                <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} initialTab="members" />
+                    {/* Editor */}
+                    <div className={page.locked ? "pointer-events-none opacity-80" : ""}>
+                        <Editor content={content} onChange={setContent} />
+                    </div>
 
-                <AIAssistant
-                    editorContent={content}
-                    onInsertContent={(newText) => setContent(prev => prev + newText)}
-                />
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} initialTab="members" />
+
+                    <AIAssistant
+                        editorContent={content}
+                        onInsertContent={(newText) => setContent(prev => prev + newText)}
+                        workspaceId={params.workspaceId as string}
+                    />
+                </div>
             </div>
+
+            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} initialTab="members" />
         </div>
     );
 }

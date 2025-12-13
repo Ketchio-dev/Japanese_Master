@@ -48,6 +48,12 @@ export interface Page {
         options?: string[]; // For select type
     }[];
     propertyValues?: Record<string, any>; // Keyed by property ID
+
+    // Page Options
+    font?: 'default' | 'serif' | 'mono';
+    fullWidth?: boolean;
+    smallText?: boolean;
+    locked?: boolean;
 }
 
 // --- Workspaces ---
