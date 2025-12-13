@@ -1,18 +1,34 @@
 "use client";
-
+import React from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote, Heading1, Heading2, Code } from 'lucide-react';
 
+import { SlashCommand, suggestion } from './extensions';
+
 const Editor = ({ content, onChange }: { content: string, onChange?: (html: string) => void }) => {
     const editor = useEditor({
+        immediatelyRender: false,
         extensions: [
             StarterKit,
             Underline,
+            Table.configure({
+                resizable: true,
+            }),
+            TableRow,
+            TableHeader,
+            TableCell,
             Placeholder.configure({
                 placeholder: 'Type something... or "/" for commands',
+            }),
+            SlashCommand.configure({
+                suggestion,
             }),
         ],
         content: content,
@@ -40,9 +56,9 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
     );
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-4 px-4 sm:px-12 pb-24">
+        <div className="w-full max-w-4xl mx-auto mt-4 px-4 sm:px-12 pb-24" >
             {/* Toolbar - Sticky if needed, or simple */}
-            <div className="flex items-center gap-1 p-2 mb-4 border-b border-gray-100 bg-white sticky top-0 z-10 flex-wrap">
+            < div className="flex items-center gap-1 p-2 mb-4 border-b border-gray-100 bg-white sticky top-0 z-10 flex-wrap" >
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     isActive={editor.isActive('bold')}
@@ -90,13 +106,13 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
                     isActive={editor.isActive('codeBlock')}
                     icon={Code}
                 />
-            </div>
+            </div >
 
             {/* Editor Area */}
-            <div className="min-h-[500px] cursor-text" onClick={() => editor.chain().focus().run()}>
+            < div className="min-h-[500px] cursor-text" onClick={() => editor.chain().focus().run()}>
                 <EditorContent editor={editor} />
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

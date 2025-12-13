@@ -10,7 +10,9 @@ import {
     updateDoc,
     serverTimestamp,
     orderBy,
-    deleteDoc
+    deleteDoc,
+    arrayUnion,
+    onSnapshot // Import onSnapshot
 } from "firebase/firestore";
 
 export interface Workspace {
@@ -31,7 +33,21 @@ export interface Page {
     content?: string; // HTML content from Tiptap
     createdAt?: any;
     updatedAt?: any;
-    isExpanded?: boolean; // For sidebar UI state (local only, but defined here for type)
+    isExpanded?: boolean; // For sidebar UI state
+
+    // Organization
+    section?: 'private' | 'workspace';
+    createdBy?: string;
+
+    // Database Fields
+    type: 'page' | 'database';
+    properties?: {
+        id: string;
+        name: string;
+        type: 'text' | 'number' | 'select' | 'date';
+        options?: string[]; // For select type
+    }[];
+    propertyValues?: Record<string, any>; // Keyed by property ID
 }
 
 // --- Workspaces ---
@@ -44,6 +60,15 @@ export async function createWorkspace(ownerId: string, name: string): Promise<Wo
         createdAt: serverTimestamp()
     });
     return { id: docRef.id, ownerId, name, members: [ownerId] };
+}
+
+export async function getWorkspace(workspaceId: string): Promise<Workspace | null> {
+    const docRef = doc(db, "workspaces", workspaceId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+        return { id: snap.id, ...snap.data() } as Workspace;
+    }
+    return null;
 }
 
 export async function getUserWorkspaces(userId: string): Promise<Workspace[]> {
@@ -60,12 +85,23 @@ export async function getUserWorkspaces(userId: string): Promise<Workspace[]> {
 
 // --- Pages ---
 
-export async function createPage(workspaceId: string, parentId: string | null = null, title: string = "Untitled"): Promise<Page> {
+export async function createPage(
+    workspaceId: string,
+    parentId: string | null = null,
+    title: string = "Untitled",
+    type: 'page' | 'database' = 'page',
+    section: 'private' | 'workspace' = 'workspace',
+    userId: string = ""
+): Promise<Page> {
     const docRef = await addDoc(collection(db, "pages"), {
         workspaceId,
         parentId,
         title,
         content: "",
+        type,
+        section,
+        createdBy: userId,
+        properties: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     });
@@ -75,7 +111,10 @@ export async function createPage(workspaceId: string, parentId: string | null = 
         workspaceId,
         parentId,
         title,
-        content: ""
+        content: "",
+        type,
+        section,
+        createdBy: userId
     };
 }
 
@@ -93,6 +132,19 @@ export async function getWorkspacePages(workspaceId: string): Promise<Page[]> {
         pages.push({ id: doc.id, ...doc.data() } as Page);
     });
 
+    return pages;
+}
+
+export async function getChildPages(parentId: string): Promise<Page[]> {
+    const q = query(
+        collection(db, "pages"),
+        where("parentId", "==", parentId)
+    );
+    const snapshot = await getDocs(q);
+    const pages: Page[] = [];
+    snapshot.forEach(doc => {
+        pages.push({ id: doc.id, ...doc.data() } as Page);
+    });
     return pages;
 }
 
@@ -114,4 +166,72 @@ export async function deletePage(pageId: string) {
     // Note: This needs to recursively delete children in a real production app.
     // For MVP, we just delete the node. Children become orphans (or hidden).
     await deleteDoc(doc(db, "pages", pageId));
+}
+
+export function subscribeToWorkspacePages(workspaceId: string, callback: (pages: Page[]) => void) {
+    const q = query(
+        collection(db, "pages"),
+        where("workspaceId", "==", workspaceId)
+    );
+    return onSnapshot(q, (snapshot) => {
+        const pages: Page[] = [];
+        snapshot.forEach(doc => {
+            pages.push({ id: doc.id, ...doc.data() } as Page);
+        });
+        callback(pages);
+    });
+}
+
+export function subscribeToPage(pageId: string, callback: (page: Page | null) => void) {
+    const docRef = doc(db, "pages", pageId);
+    return onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            callback({ id: docSnap.id, ...docSnap.data() } as Page);
+        } else {
+            callback(null);
+        }
+    });
+}
+
+// --- Members ---
+
+export async function addMemberToWorkspace(workspaceId: string, email: string) {
+    // 1. Find User by Email
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        throw new Error("User not found with this email");
+    }
+
+    const userToAdd = snapshot.docs[0];
+    const uid = userToAdd.id;
+
+    // 2. Add to Workspace
+    const wsRef = doc(db, "workspaces", workspaceId);
+    await updateDoc(wsRef, {
+        members: arrayUnion(uid)
+    });
+
+    return { uid, ...userToAdd.data() };
+}
+
+export async function getWorkspaceMembers(workspaceId: string) {
+    const wsRef = doc(db, "workspaces", workspaceId);
+    const wsSnap = await getDoc(wsRef);
+
+    if (!wsSnap.exists()) return [];
+
+    const memberIds = wsSnap.data().members || [];
+    const members = [];
+
+    // Ideally use 'in' query if list is small, or parallel fetches
+    for (const uid of memberIds) {
+        const userSnap = await getDoc(doc(db, "users", uid));
+        if (userSnap.exists()) {
+            members.push({ uid, ...userSnap.data() });
+        }
+    }
+    return members;
 }
