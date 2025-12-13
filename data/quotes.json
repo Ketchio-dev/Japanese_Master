@@ -1,0 +1,37 @@
+[
+    {
+        "category": "Quotes",
+        "origin": "슬램덩크",
+        "sentence": "諦めたらそこで試合終了だよ",
+        "kana": "あきらめたらそこでしあいしゅうりょうだよ",
+        "meaning": "포기하면 거기서 시합 종료야"
+    },
+    {
+        "category": "Quotes",
+        "origin": "Naruto",
+        "sentence": "まっすぐ自分の言葉は曲げねぇ。それが俺の忍道だ",
+        "kana": "まっすぐじぶんのことばはまげねぇ。それがおれのにんどうだ",
+        "meaning": "내 말은 절대 굽히지 않아. 그게 나의 닌자의 길이다"
+    },
+    {
+        "category": "Daily",
+        "origin": "Daily Conversation",
+        "sentence": "こんにちは、元気ですか？",
+        "kana": "こんにちは、げんきですか？",
+        "meaning": "안녕하세요, 잘 지내시나요?"
+    },
+    {
+        "category": "Daily",
+        "origin": "Daily Conversation",
+        "sentence": "今何時ですか？",
+        "kana": "いまなんじですか？",
+        "meaning": "지금 몇 시인가요?"
+    },
+    {
+        "category": "Daily",
+        "origin": "Daily Conversation",
+        "sentence": "トイレはどこですか？",
+        "kana": "といれはどこですか？",
+        "meaning": "화장실은 어디입니까?"
+    }
+]

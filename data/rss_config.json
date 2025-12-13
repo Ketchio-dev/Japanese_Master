@@ -1,0 +1,6 @@
+{
+    "feeds": [
+        "https://news.yahoo.co.jp/rss/topics/top-picks.xml",
+        "https://www3.nhk.or.jp/rss/news/cat0.xml"
+    ]
+}

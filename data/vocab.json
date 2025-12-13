@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "kanji": "猫",
+    "kana": "ねこ",
+    "meaning": "고양이",
+    "next_review": "2025-12-13",
+    "interval": 1,
+    "repetitions": 1,
+    "easiness": 2.5
+  },
+  {
+    "id": 2,
+    "kanji": "犬",
+    "kana": "いぬ",
+    "meaning": "개",
+    "next_review": "2025-12-13",
+    "interval": 1,
+    "repetitions": 0,
+    "easiness": 2.1799999999999997
+  }
+]

@@ -1,0 +1,25 @@
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Mac
+.DS_Store
+
+# Data (Optional: if we want to avoid pushing local json updates, though for this serverless app we WANT to push data updates technically, but the user asked about KEYS. 
+# However, usually we don't push local `data/*` if it's meant to be pulled from GitHub. 
+# But for initial setup, we might want to push. 
+# Safest is to IGNORE users data but KEEP structure data.)
+data/users/
+data/analytics.json
