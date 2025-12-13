@@ -40,9 +40,9 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
     );
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-8 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            {/* Toolbar */}
-            <div className="flex items-center gap-1 p-3 border-b border-gray-100 bg-gray-50 overflow-x-auto">
+        <div className="w-full max-w-4xl mx-auto mt-4 px-4 sm:px-12 pb-24">
+            {/* Toolbar - Sticky if needed, or simple */}
+            <div className="flex items-center gap-1 p-2 mb-4 border-b border-gray-100 bg-white sticky top-0 z-10 flex-wrap">
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     isActive={editor.isActive('bold')}
@@ -93,7 +93,7 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
             </div>
 
             {/* Editor Area */}
-            <div className="p-8 md:p-12 min-h-[500px] cursor-text" onClick={() => editor.chain().focus().run()}>
+            <div className="min-h-[500px] cursor-text" onClick={() => editor.chain().focus().run()}>
                 <EditorContent editor={editor} />
             </div>
         </div>
