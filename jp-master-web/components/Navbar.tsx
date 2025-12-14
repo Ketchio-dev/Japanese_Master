@@ -158,8 +158,8 @@ export default function Navbar() {
                                         <Link href="/profile" className="flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-[#3e3e3e] transition" onClick={() => setIsMenuOpen(false)}>
                                             <span className="mr-3">👤</span> Your Profile
                                         </Link>
-                                        <Link href="/srs" className="flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-[#3e3e3e] transition" onClick={() => setIsMenuOpen(false)}>
-                                            <span className="mr-3">📓</span> Vocabulary Deck
+                                        <Link href="/stats" className="flex items-center px-5 py-3 text-sm text-gray-200 hover:bg-[#3e3e3e] transition" onClick={() => setIsMenuOpen(false)}>
+                                            <span className="mr-3">📊</span> Detailed Statistics
                                         </Link>
                                     </div>
 
