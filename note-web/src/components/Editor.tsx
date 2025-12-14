@@ -12,7 +12,14 @@ import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Quote, Hea
 
 import { SlashCommand, suggestion } from './extensions';
 
-const Editor = ({ content, onChange }: { content: string, onChange?: (html: string) => void }) => {
+import { forwardRef, useImperativeHandle } from 'react';
+
+export interface EditorHandle {
+    insertContent: (content: string) => void;
+    getHTML: () => string;
+}
+
+const Editor = forwardRef<EditorHandle, { content: string, onChange?: (html: string) => void }>(({ content, onChange }, ref) => {
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [
@@ -34,13 +41,22 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
         content: content,
         editorProps: {
             attributes: {
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[50vh]',
+                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-0 focus:outline-none min-h-[50vh] dark:prose-invert max-w-none',
             },
         },
         onUpdate: ({ editor }) => {
             onChange?.(editor.getHTML());
         },
     });
+
+    useImperativeHandle(ref, () => ({
+        insertContent: (text: string) => {
+            if (editor) {
+                editor.chain().focus().insertContent(text).run();
+            }
+        },
+        getHTML: () => editor?.getHTML() || ""
+    }));
 
     if (!editor) {
         return null;
@@ -49,16 +65,16 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
     const ToolbarButton = ({ onClick, isActive, icon: Icon }: any) => (
         <button
             onClick={onClick}
-            className={`p-2 rounded hover:bg-gray-200 transition ${isActive ? 'bg-gray-200 text-black' : 'text-gray-500'}`}
+            className={`p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition ${isActive ? 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}
         >
             <Icon size={18} />
         </button>
     );
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-4 px-4 sm:px-12 pb-24" >
+        <div className="w-full mt-4 pb-24 relative" >
             {/* Toolbar - Sticky if needed, or simple */}
-            < div className="flex items-center gap-1 p-2 mb-4 border-b border-gray-100 bg-white sticky top-0 z-10 flex-wrap" >
+            < div className="flex items-center gap-1 py-2 mb-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-[#191919] sticky top-0 z-10 flex-wrap transition-colors" >
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     isActive={editor.isActive('bold')}
@@ -74,7 +90,7 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
                     isActive={editor.isActive('underline')}
                     icon={UnderlineIcon}
                 />
-                <div className="w-px h-6 bg-gray-300 mx-2" />
+                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                     isActive={editor.isActive('heading', { level: 1 })}
@@ -85,7 +101,7 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
                     isActive={editor.isActive('heading', { level: 2 })}
                     icon={Heading2}
                 />
-                <div className="w-px h-6 bg-gray-300 mx-2" />
+                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
                     isActive={editor.isActive('bulletList')}
@@ -114,6 +130,8 @@ const Editor = ({ content, onChange }: { content: string, onChange?: (html: stri
             </div >
         </div >
     );
-};
+});
+
+Editor.displayName = "Editor";
 
 export default Editor;

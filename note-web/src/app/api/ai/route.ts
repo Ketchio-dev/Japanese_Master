@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
     try {
-        const { messages, prompt } = await req.json();
+        const { messages, prompt, model } = await req.json();
         // Prefer key from client header, fallback to server env (optional)
         const apiKey = req.headers.get("X-OpenRouter-Key") || process.env.OPENROUTER_API_KEY;
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
                 "X-Title": "MyArchive Note"
             },
             body: JSON.stringify({
-                "model": "openai/gpt-3.5-turbo", // Or any model user prefers
+                "model": model || "openai/gpt-3.5-turbo", // Use user selected model or default
                 "messages": payloadMessages
             })
         });

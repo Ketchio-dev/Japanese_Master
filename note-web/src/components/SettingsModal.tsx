@@ -14,6 +14,7 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
 
     const [activeTab, setActiveTab] = useState<'general' | 'members'>(initialTab);
     const [apiKey, setApiKey] = useState("");
+    const [model, setModel] = useState("openai/gpt-3.5-turbo");
 
     // Members State
     const [email, setEmail] = useState("");
@@ -25,7 +26,9 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
         if (isOpen) {
             setActiveTab(initialTab); // Reset tab when opening
             const storedKey = localStorage.getItem("openrouter_api_key") || "";
+            const storedModel = localStorage.getItem("openrouter_model") || "openai/gpt-3.5-turbo";
             setApiKey(storedKey);
+            setModel(storedModel);
             loadMembers();
         }
     }, [isOpen, workspaceId, initialTab]);
@@ -44,6 +47,7 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
 
     const handleSaveKey = () => {
         localStorage.setItem("openrouter_api_key", apiKey);
+        localStorage.setItem("openrouter_model", model);
         onClose();
     };
 
@@ -69,20 +73,20 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl h-[500px] flex overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-[#1C1C1C] rounded-xl shadow-xl w-full max-w-2xl h-[500px] flex overflow-hidden border border-gray-200 dark:border-gray-800">
                 {/* Sidebar */}
-                <div className="w-48 bg-gray-50 border-r border-gray-100 p-4 flex flex-col gap-2">
+                <div className="w-48 bg-gray-50 dark:bg-[#202020] border-r border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-2">
                     <h2 className="text-sm font-bold text-gray-400 mb-2 uppercase px-2">Settings</h2>
                     <button
                         onClick={() => setActiveTab('general')}
-                        className={`text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${activeTab === 'general' ? 'bg-gray-200 font-medium' : 'hover:bg-gray-100 text-gray-600'}`}
+                        className={`text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${activeTab === 'general' ? 'bg-gray-200 dark:bg-gray-700 font-medium text-black dark:text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'}`}
                     >
                         <Key size={16} /> General
                     </button>
                     <button
                         onClick={() => setActiveTab('members')}
-                        className={`text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${activeTab === 'members' ? 'bg-gray-200 font-medium' : 'hover:bg-gray-100 text-gray-600'}`}
+                        className={`text-left px-3 py-2 rounded text-sm flex items-center gap-2 ${activeTab === 'members' ? 'bg-gray-200 dark:bg-gray-700 font-medium text-black dark:text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'}`}
                     >
                         <Users size={16} /> Members
                     </button>
@@ -98,8 +102,8 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-8 relative flex flex-col">
-                    <button onClick={onClose} className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-black">
+                <div className="flex-1 p-8 relative flex flex-col text-gray-900 dark:text-gray-100">
+                    <button onClick={onClose} className="absolute right-4 top-4 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-black dark:hover:text-white">
                         <X size={20} />
                     </button>
 
@@ -118,13 +122,43 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     placeholder="sk-or-..."
-                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#111] rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none"
                                 />
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    AI Model
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2">
+                                    Select the model to use for AI features.
+                                </p>
+                                <select
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                    className="w-full p-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#111] rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none"
+                                >
+                                    <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo (Default)</option>
+                                    <option value="openai/gpt-4o">GPT-4o</option>
+                                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                                    <optgroup label="Advanced Models (2025)">
+                                        <option value="anthropic/claude-4.5-sonnet">Claude 4.5 Sonnet</option>
+                                        <option value="anthropic/claude-4.5-opus">Claude 4.5 Opus</option>
+                                        <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                        <option value="google/gemini-3.0-pro">Gemini 3.0 Pro</option>
+                                        <option value="openai/gpt-5.2">GPT-5.2</option>
+                                        <option value="openai/gpt-5.2-thinking">GPT-5.2 (Thinking)</option>
+                                    </optgroup>
+                                    <optgroup label="Open Source">
+                                        <option value="meta-llama/llama-3-70b-instruct">Llama 3 70B</option>
+                                        <option value="mistralai/mistral-large">Mistral Large</option>
+                                    </optgroup>
+                                </select>
                             </div>
                             <div className="flex justify-end">
                                 <button
                                     onClick={handleSaveKey}
-                                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800"
+                                    className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200"
                                 >
                                     Save
                                 </button>
@@ -143,7 +177,7 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="friend@example.com"
-                                    className="flex-1 p-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                                    className="flex-1 p-2 border border-blue-200 dark:border-blue-900 bg-white dark:bg-[#111] rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
                                 />
                                 <button
                                     onClick={handleInvite}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowUp, X, Globe, Paperclip, ChevronDown, FileText, Search, Zap } from 'lucide-react';
+import { Sparkles, ArrowUp, X, Globe, Paperclip, ChevronDown, FileText, Search, Zap, Copy } from 'lucide-react';
 import { generateAIContent } from '@/lib/ai';
-import { getWorkspacePages, Page } from '@/lib/workspace';
+import { subscribeToWorkspacePages, Page } from '@/lib/workspace';
 
 interface AIAssistantProps {
     onInsertContent: (content: string) => void;
@@ -23,15 +23,57 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
     const [loading, setLoading] = useState(false);
     const [contextMenuOpen, setContextMenuOpen] = useState(false);
     const [availablePages, setAvailablePages] = useState<Page[]>([]);
+
     const [selectedContext, setSelectedContext] = useState<Page[]>([]);
+    const [isWebMode, setIsWebMode] = useState(false);
+    const [model, setModel] = useState("openai/gpt-3.5-turbo");
+    const [showModelSelector, setShowModelSelector] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (isOpen && availablePages.length === 0) {
-            getWorkspacePages(workspaceId).then(setAvailablePages);
+        let unsubscribe: (() => void) | undefined;
+
+        if (isOpen) {
+            // Subscribe to real-time updates when open
+            // Subscribe to real-time updates when open
+            unsubscribe = subscribeToWorkspacePages(workspaceId, (pages) => {
+                // Filter out:
+                // 1. Explicitly trashed pages
+                // 2. Orphans (parentId points to non-existent page)
+                // 3. Children of trashed/hidden pages
+
+                const pageMap = new Map(pages.map(p => [p.id, p]));
+
+                const isVisible = (p: Page): boolean => {
+                    if (p.inTrash) return false;
+                    if (!p.parentId) return true; // Root page, visible if not trash
+
+                    const parent = pageMap.get(p.parentId);
+                    if (!parent) return false; // Orphan (parent deleted/missing)
+
+                    return isVisible(parent); // Recursive check up the tree
+                };
+
+                setAvailablePages(pages.filter(p => isVisible(p)));
+            });
+
+            // Sync model from storage
+            const storedModel = localStorage.getItem("openrouter_model");
+            if (storedModel) setModel(storedModel);
         }
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [isOpen, workspaceId]);
+
+    const handleModelChange = (newModel: string) => {
+        setModel(newModel);
+        localStorage.setItem("openrouter_model", newModel);
+        setShowModelSelector(false);
+    };
 
     const handleSend = async () => {
         if (!input.trim()) return;
@@ -53,10 +95,25 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
             }
             contextStr += `Current Editor Content:\n${editorContent.substring(0, 1000)}...\n\n`; // Truncate for token limits
 
-            const prompt = `${contextStr}User Query: ${userMsg.content}`;
-            const sysPrompt = "You are a helpful AI assistant embedded in a notion-like editor. Be concise and helpful.";
+            contextStr += `Current Editor Content:\n${editorContent.substring(0, 1000)}...\n\n`; // Truncate for token limits
 
-            const result = await generateAIContent(prompt, sysPrompt);
+            let finalPrompt = `${contextStr}User Query: ${userMsg.content}`;
+            if (isWebMode) {
+                finalPrompt += "\n\n[Instruction: The user has enabled Web Search Mode. Please use your internal knowledge base to act as if you are searching the web. Provide up-to-date, comprehensive information as if you just browsed the internet.]";
+            }
+
+            const sysPrompt = `You are an expert AI coding and note-taking assistant embedded in a modern notion-like workspace.
+            
+            **Guidelines:**
+            1. **Format**: Use clean Markdown (Headers, Bullet points, Code blocks, Tables).
+            2. **Tone**: Be professional, direct, and helpful. Avoid robotic intros.
+            3. **Content**: When asked to research or explain, provide comprehensive and structured answers.
+            4. **Context**: Use the user's provided page context to give relevant answers.
+            5. **Language**: Respond in the same language as the user's query (Korean/English/etc).
+            
+            Always aim for clarity and actionable information.`;
+
+            const result = await generateAIContent(finalPrompt, sysPrompt);
 
             setMessages(prev => [...prev, { role: 'assistant', content: result }]);
         } catch (e) {
@@ -91,12 +148,54 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
             {isOpen && (
                 <div className="bg-white dark:bg-[#1C1C1C] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 w-[400px] h-[500px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
                     {/* Header */}
-                    <div className="flex justify-between items-center p-3 border-b border-gray-100 dark:border-gray-800">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <div className="relative flex justify-between items-center p-3 border-b border-gray-100 dark:border-gray-800">
+                        <button
+                            onClick={() => setShowModelSelector(!showModelSelector)}
+                            className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 px-2 py-1 rounded transition"
+                        >
                             <Sparkles size={16} className="text-purple-500" />
-                            <span>New AI chat</span>
-                            <ChevronDown size={14} className="opacity-50" />
-                        </div>
+                            <div className="flex flex-col items-start leading-none">
+                                <span>New AI chat</span>
+                                <span className="text-[10px] text-gray-400 font-normal">{model.split('/').pop()}</span>
+                            </div>
+                            <ChevronDown size={14} className={`opacity-50 transition-transform ${showModelSelector ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Model Selector Dropdown */}
+                        {showModelSelector && (
+                            <div className="absolute top-12 left-4 w-64 bg-white dark:bg-[#252525] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[300px] overflow-y-auto p-1 animate-in z-50 fade-in zoom-in-95 duration-100">
+                                <div className="text-[10px] font-semibold text-gray-400 px-2 py-1 uppercase">Select Model</div>
+                                <button onClick={() => handleModelChange("openai/gpt-3.5-turbo")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    GPT-3.5 Turbo {model === "openai/gpt-3.5-turbo" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("openai/gpt-4o")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    GPT-4o {model === "openai/gpt-4o" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("anthropic/claude-3.5-sonnet")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    Claude 3.5 Sonnet {model === "anthropic/claude-3.5-sonnet" && "✓"}
+                                </button>
+                                <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                                <div className="text-[10px] font-semibold text-gray-400 px-2 py-1 uppercase">2025 / Advanced</div>
+                                <button onClick={() => handleModelChange("anthropic/claude-4.5-sonnet")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    Claude 4.5 Sonnet {model === "anthropic/claude-4.5-sonnet" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("anthropic/claude-4.5-opus")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    Claude 4.5 Opus {model === "anthropic/claude-4.5-opus" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("google/gemini-2.5-flash")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    Gemini 2.5 Flash {model === "google/gemini-2.5-flash" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("google/gemini-3.0-pro")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    Gemini 3.0 Pro {model === "google/gemini-3.0-pro" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("openai/gpt-5.2")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    GPT-5.2 {model === "openai/gpt-5.2" && "✓"}
+                                </button>
+                                <button onClick={() => handleModelChange("openai/gpt-5.2-thinking")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
+                                    GPT-5.2 (Thinking) {model === "openai/gpt-5.2-thinking" && "✓"}
+                                </button>
+                            </div>
+                        )}
                         <div className="flex gap-2">
                             <button onClick={() => setMessages([])} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1" title="Clear Chat">
                                 <Zap size={14} />
@@ -147,9 +246,19 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
                                     <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.role === 'user' ? 'bg-black text-white' : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
                                         <div className="whitespace-pre-wrap">{m.content}</div>
                                         {m.role === 'assistant' && (
-                                            <div className="mt-2 pt-2 border-t border-gray-200/20 flex gap-2">
-                                                <button onClick={() => onInsertContent(m.content)} className="text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
-                                                    <FileText size={12} /> Insert
+                                            <div className="mt-3 flex gap-2 w-full">
+                                                <button
+                                                    onClick={() => onInsertContent(m.content)}
+                                                    className="flex-1 bg-black text-white dark:bg-white dark:text-black py-1.5 rounded-md text-xs font-bold hover:opacity-80 transition flex items-center justify-center gap-2"
+                                                >
+                                                    <FileText size={14} /> Add to Page
+                                                </button>
+                                                <button
+                                                    onClick={() => navigator.clipboard.writeText(m.content)}
+                                                    className="px-2 bg-gray-100 dark:bg-gray-700/50 rounded-md text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                                                    title="Copy to clipboard"
+                                                >
+                                                    <Copy size={14} />
                                                 </button>
                                             </div>
                                         )}
@@ -195,9 +304,10 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
                                         handleSend();
                                     }
                                 }}
-                                placeholder="Message AI..."
+                                placeholder={loading ? "Thinking..." : "Message AI..."}
                                 className="w-full bg-transparent border-none focus:outline-none text-sm p-1 text-gray-900 dark:text-white"
                                 autoFocus
+                                disabled={loading}
                             />
                             <div className="flex justify-between items-center mt-2 px-1">
                                 <div className="flex gap-1">
@@ -232,12 +342,41 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
                                             </div>
                                         )}
                                     </div>
-                                    <button className="text-gray-400 hover:text-black dark:hover:text-white p-1 rounded"><Paperclip size={14} /></button>
-                                    <button className="text-gray-400 hover:text-black dark:hover:text-white p-1 rounded"><Globe size={14} /></button>
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="text-gray-400 hover:text-black dark:hover:text-white p-1 rounded relative"
+                                        title="Attach file (Text/MD)"
+                                    >
+                                        <Paperclip size={14} />
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept=".txt,.md,.json,.csv"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = (ev) => {
+                                                        const text = ev.target?.result as string;
+                                                        setInput(prev => prev + `\n[Attached File: ${file.name}]\n${text}\n`);
+                                                    };
+                                                    reader.readAsText(file);
+                                                }
+                                            }}
+                                        />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsWebMode(!isWebMode)}
+                                        className={`p-1 rounded transition ${isWebMode ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30" : "text-gray-400 hover:text-black dark:hover:text-white"}`}
+                                        title="Toggle Web Knowledge"
+                                    >
+                                        <Globe size={14} />
+                                    </button>
                                 </div>
                                 <button
                                     onClick={handleSend}
-                                    disabled={!input.trim() && selectedContext.length === 0}
+                                    disabled={loading || (!input.trim() && selectedContext.length === 0)}
                                     className={`w-7 h-7 rounded-sm flex items-center justify-center transition-all ${input.trim() ? "bg-black text-white" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
                                 >
                                     <ArrowUp size={16} />
@@ -257,6 +396,6 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
             >
                 {isOpen ? <X size={24} /> : <Sparkles size={20} className="text-purple-600" fill="currentColor" fillOpacity={0.2} />}
             </button>
-        </div>
+        </div >
     );
 }

@@ -12,7 +12,8 @@ import {
     orderBy,
     deleteDoc,
     arrayUnion,
-    onSnapshot // Import onSnapshot
+    onSnapshot, // Import onSnapshot
+    setDoc
 } from "firebase/firestore";
 
 export interface Workspace {
@@ -54,6 +55,13 @@ export interface Page {
     fullWidth?: boolean;
     smallText?: boolean;
     locked?: boolean;
+
+    // Trash
+    inTrash?: boolean;
+    trashDate?: any;
+
+    // Meta
+    isFavorite?: boolean;
 }
 
 // --- Workspaces ---
@@ -91,38 +99,59 @@ export async function getUserWorkspaces(userId: string): Promise<Workspace[]> {
 
 // --- Pages ---
 
-export async function createPage(
+export const createPage = async (
     workspaceId: string,
     parentId: string | null = null,
     title: string = "Untitled",
     type: 'page' | 'database' = 'page',
     section: 'private' | 'workspace' = 'workspace',
     userId: string = ""
-): Promise<Page> {
-    const docRef = await addDoc(collection(db, "pages"), {
+) => {
+    // Check for existing "Untitled" pages to generate unique name if title is default
+    let finalTitle = title;
+
+    // Generic Unique Title Logic (No Index Required)
+    // 1. Fetch all titles in this workspace to check for duplicates in-memory
+    // This avoids "Missing Index" errors for range queries
+    const pagesRef = collection(db, "pages");
+    const q = query(pagesRef, where("workspaceId", "==", workspaceId));
+    const snapshot = await getDocs(q);
+
+    // Set of existing titles for fast lookup
+    const existingTitles = new Set<string>();
+    snapshot.forEach(doc => existingTitles.add(doc.data().title));
+
+    let count = 2;
+
+    // 2. Loop until we find a free title
+    // Format: "Title", "Title_2", "Title_3"...
+    while (existingTitles.has(finalTitle)) {
+        finalTitle = `${title}_${count}`;
+        count++;
+    }
+
+    const pageRef = doc(collection(db, "pages"));
+    const newPage: Page = {
+        id: pageRef.id,
         workspaceId,
-        parentId,
-        title,
+        parentId: parentId || null,
+        title: finalTitle,
         content: "",
         type,
         section,
         createdBy: userId,
         properties: [],
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-    });
-
-    return {
-        id: docRef.id,
-        workspaceId,
-        parentId,
-        title,
-        content: "",
-        type,
-        section,
-        createdBy: userId
+        updatedAt: serverTimestamp(),
+        font: 'default',
+        fullWidth: false,
+        smallText: false,
+        locked: false,
+        inTrash: false
     };
-}
+    await setDoc(pageRef, newPage);
+    return newPage;
+};
 
 export async function getWorkspacePages(workspaceId: string): Promise<Page[]> {
     // Determine sort algorithm - for now create time

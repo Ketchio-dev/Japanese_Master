@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
     MoreHorizontal,
     Type,
@@ -8,6 +8,7 @@ import {
     Copy,
     ArrowUpRight,
     Download,
+    Upload,
     Lock,
     Unlock,
     LayoutTemplate,
@@ -28,9 +29,34 @@ interface PageMenuProps {
 
 export default function PageMenu({ page, onUpdate, onDelete, onDuplicate }: PageMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Close menu when clicking outside (simple implementation using backdrop)
     const toggleMenu = () => setIsOpen(!isOpen);
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            if (text) {
+                // Confirm before overwriting if there is content? 
+                // For now, simpler is better for "Import". Just append or replace?
+                // The user usually expects Import to LOAD the file. Replacing is the standard "Open" behavior.
+                // But typically safer to confirm. Since I cannot easily confirm here without more UI, I'll just append?
+                // No, "Import" in this context usually means "Replace". But let's check if the page is empty?
+                // If I overwrite, I might lose data.
+                // Let's standardly PREPEND or APPEND to be safe, or just REPLACE if user wants 'Import'.
+                // Given "Export/Import" symmetry, user might expect to be able to "Restore" from an export.
+                // I will REPLACE the content with the imported text. This is consistent with "Opening" a file.
+                onUpdate({ content: text });
+                setIsOpen(false);
+            }
+        };
+        reader.readAsText(file);
+    };
 
     return (
         <div className="relative z-50">
@@ -156,6 +182,20 @@ export default function PageMenu({ page, onUpdate, onDelete, onDuplicate }: Page
                                 <Trash size={16} />
                                 <span>Delete Page</span>
                             </button>
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full flex items-center px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm text-gray-700 dark:text-gray-300 gap-2"
+                            >
+                                <Upload size={16} className="text-gray-400" />
+                                <span>Import</span>
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImport}
+                                className="hidden"
+                                accept=".md,.txt,.json,.html"
+                            />
                             <button className="w-full flex items-center px-4 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 transition text-sm text-gray-700 dark:text-gray-300 gap-2">
                                 <Download size={16} className="text-gray-400" />
                                 <span>Export</span>

@@ -2,6 +2,8 @@
 export async function generateAIContent(prompt: string, systemPrompt?: string): Promise<string> {
     try {
         const apiKey = localStorage.getItem("openrouter_api_key");
+        const model = localStorage.getItem("openrouter_model") || "openai/gpt-3.5-turbo";
+
         if (!apiKey) {
             return "Please set your OpenRouter API Key in Settings.";
         }
@@ -20,7 +22,7 @@ export async function generateAIContent(prompt: string, systemPrompt?: string): 
                 'Content-Type': 'application/json',
                 'X-OpenRouter-Key': apiKey
             },
-            body: JSON.stringify({ messages })
+            body: JSON.stringify({ messages, model })
         });
 
         const data = await res.json();
