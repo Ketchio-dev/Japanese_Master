@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+
+interface CalendarEvent {
+    id: string;
+    title: string;
+    date: string; // YYYY-MM-DD
+}
 
 export default function CalendarPage() {
     const params = useParams();
+    const workspaceId = params.workspaceId as string;
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -15,6 +23,20 @@ export default function CalendarPage() {
     const firstDayOfMonth = new Date(year, month, 1).getDay();
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    // Load events from LocalStorage on mount
+    useEffect(() => {
+        if (!workspaceId) return;
+        const savedEvents = localStorage.getItem(\`calendar_events_\${workspaceId}\`);
+        if (savedEvents) {
+            setEvents(JSON.parse(savedEvents));
+        }
+    }, [workspaceId]);
+
+    const saveEvents = (newEvents: CalendarEvent[]) => {
+        setEvents(newEvents);
+        localStorage.setItem(\`calendar_events_\${workspaceId}\`, JSON.stringify(newEvents));
+    };
 
     const handlePrevMonth = () => {
         setCurrentDate(new Date(year, month - 1, 1));
@@ -31,6 +53,33 @@ export default function CalendarPage() {
     const isToday = (day: number) => {
         const today = new Date();
         return day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    };
+    
+    const getEventsForDay = (day: number) => {
+        const dateStr = \`\${year}-\${String(month + 1).padStart(2, '0')}-\${String(day).padStart(2, '0')}\`;
+        return events.filter(e => e.date === dateStr);
+    };
+
+    const handleAddEvent = (day: number) => {
+        const title = window.prompt("Enter event title:");
+        if (title) {
+            const dateStr = \`\${year}-\${String(month + 1).padStart(2, '0')}-\${String(day).padStart(2, '0')}\`;
+            const newEvent: CalendarEvent = {
+                id: Date.now().toString(),
+                title,
+                date: dateStr
+            };
+            const newEvents = [...events, newEvent];
+            saveEvents(newEvents);
+        }
+    };
+
+    const handleDeleteEvent = (e: React.MouseEvent, eventId: string) => {
+        e.stopPropagation();
+        if (confirm("Delete this event?")) {
+            const newEvents = events.filter(ev => ev.id !== eventId);
+            saveEvents(newEvents);
+        }
     };
 
     return (
@@ -70,15 +119,31 @@ export default function CalendarPage() {
                 {/* Days */}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
+                    const dayEvents = getEventsForDay(day);
+                    
                     return (
-                        <div key={day} className="bg-white dark:bg-[#191919] min-h-[120px] p-2 hover:bg-gray-50 dark:hover:bg-[#202020] transition group relative border-t border-gray-100 dark:border-gray-800/50">
+                        <div key={day} className="bg-white dark:bg-[#191919] min-h-[120px] p-2 hover:bg-gray-50 dark:hover:bg-[#202020] transition group relative border-t border-gray-100 dark:border-gray-800/50 flex flex-col gap-1">
                             <div className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium ${isToday(day) ? 'bg-red-500 text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                                 {day}
                             </div>
-                            {/* Placeholder for events */}
-                            <div className="mt-2 text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                + Add item
-                            </div>
+                            
+                            {/* Events */}
+                            {dayEvents.map(event => (
+                                <div key={event.id} className="group/event flex items-center justify-between text-xs p-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/50">
+                                    <span className="truncate">{event.title}</span>
+                                    <button onClick={(e) => handleDeleteEvent(e, event.id)} className="opacity-0 group-hover/event:opacity-100 hover:text-red-500 transition-opacity">
+                                        <Trash2 size={10} />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {/* Add Item Button */}
+                            <button 
+                                onClick={() => handleAddEvent(day)}
+                                className="mt-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity pt-2"
+                            >
+                                <Plus size={12} /> Add item
+                            </button>
                         </div>
                     );
                 })}
