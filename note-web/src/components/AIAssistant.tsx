@@ -164,17 +164,6 @@ export default function AIAssistant({ onInsertContent, editorContent, workspaceI
                         {/* Model Selector Dropdown */}
                         {showModelSelector && (
                             <div className="absolute top-12 left-4 w-64 bg-white dark:bg-[#252525] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[300px] overflow-y-auto p-1 animate-in z-50 fade-in zoom-in-95 duration-100">
-                                <div className="text-[10px] font-semibold text-gray-400 px-2 py-1 uppercase">Select Model</div>
-                                <button onClick={() => handleModelChange("anthropic/claude-4.5-sonnet")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
-                                    GPT-3.5 Turbo {model === "anthropic/claude-4.5-sonnet" && "✓"}
-                                </button>
-                                <button onClick={() => handleModelChange("openai/gpt-4o")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
-                                    GPT-4o {model === "openai/gpt-4o" && "✓"}
-                                </button>
-                                <button onClick={() => handleModelChange("anthropic/claude-3.5-sonnet")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
-                                    Claude 3.5 Sonnet {model === "anthropic/claude-3.5-sonnet" && "✓"}
-                                </button>
-                                <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
                                 <div className="text-[10px] font-semibold text-gray-400 px-2 py-1 uppercase">2025 / Advanced</div>
                                 <button onClick={() => handleModelChange("anthropic/claude-4.5-sonnet")} className="w-full text-left px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-xs text-gray-700 dark:text-gray-200 flex justify-between items-center">
                                     Claude 4.5 Sonnet {model === "anthropic/claude-4.5-sonnet" && "✓"}
