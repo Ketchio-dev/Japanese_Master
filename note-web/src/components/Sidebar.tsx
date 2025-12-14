@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Page, createPage, subscribeToWorkspacePages, updatePage, deletePage } from "@/lib/workspace";
-import { ChevronRight, ChevronDown, FileText, Plus, Settings, Trash, MoreHorizontal, Star, Copy, Edit, ExternalLink, AppWindow, FolderInput, Home, Sun, Moon, Sparkles, Search, Inbox, Layout, X } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, Plus, Settings, Trash, MoreHorizontal, Star, Copy, Edit, ExternalLink, AppWindow, FolderInput, Home, Sun, Moon, Sparkles, Search, Layout, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -250,7 +250,6 @@ export default function Sidebar({ workspaceId }: { workspaceId: string }) {
                 <button
                     className="flex items-center gap-3 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#2C2C2C] rounded-md transition"
                 >
-                    <Inbox size={16} /> <span className="font-medium">Inbox</span>
                 </button>
 
                 <Link
