@@ -55,7 +55,7 @@ export default function AIDashboard() {
                 {!hasStarted ? (
                     <div className="flex flex-col items-center w-full gap-8 animate-in fade-in zoom-in-95 duration-500">
                         {/* Logo / Mascot */}
-                        <div className="w-20 h-20 bg-white dark:bg-[#202020] rounded-full shadow-xl flex items-center justify-center border border-gray-100 dark:border-gray-800 mb-4">
+                        <div className="w-20 h-20 bg-white dark:bg-[#191919] rounded-full shadow-xl flex items-center justify-center border border-gray-100 dark:border-gray-800 mb-4">
                             <Bot size={40} className="text-gray-800 dark:text-gray-200" />
                             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full border-2 border-[#191919]" />
                         </div>
@@ -63,7 +63,7 @@ export default function AIDashboard() {
                         <h1 className="text-3xl font-bold mb-4">How can I help you today?</h1>
 
                         {/* Search Box */}
-                        <div className="w-full bg-white dark:bg-[#202020] border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg transition-all focus-within:ring-2 focus-within:ring-blue-500/50 p-4">
+                        <div className="w-full bg-white dark:bg-[#191919] border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg transition-all focus-within:ring-2 focus-within:ring-blue-500/50 p-4">
                             <div className="flex flex-col gap-4">
                                 {/* Top Controls */}
                                 <div className="flex items-center gap-2">
@@ -148,7 +148,7 @@ export default function AIDashboard() {
                                         setInput(item.prompt);
                                         // Optional: Auto focus or auto send? Let's just populate for now so user can edit.
                                     }}
-                                    className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-[#202020] hover:bg-gray-100 dark:hover:bg-[#2A2A2A] border border-transparent dark:border-gray-800 transition text-left group"
+                                    className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-[#191919] hover:bg-gray-100 dark:hover:bg-[#2A2A2A] border border-transparent dark:border-gray-800 transition text-left group"
                                 >
                                     <item.icon size={20} className={item.color} />
                                     <div>
@@ -180,7 +180,7 @@ export default function AIDashboard() {
                                 onChange={(e) => setInput(e.target.value)}
                                 // onKeyDown...
                                 placeholder="Reply..."
-                                className="w-full bg-gray-50 dark:bg-[#202020] border border-gray-200 dark:border-gray-700 rounded-xl p-3 focus:outline-none"
+                                className="w-full bg-gray-50 dark:bg-[#191919] border border-gray-200 dark:border-gray-700 rounded-xl p-3 focus:outline-none"
                             />
                         </div>
                     </div>
