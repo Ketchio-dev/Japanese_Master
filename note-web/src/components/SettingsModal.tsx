@@ -138,7 +138,6 @@ export default function SettingsModal({ isOpen, onClose, initialTab = 'general' 
                                     onChange={(e) => setModel(e.target.value)}
                                     className="w-full p-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#111] rounded-lg focus:ring-2 focus:ring-black dark:focus:ring-white focus:outline-none"
                                 >
-                                    <option value="anthropic/claude-4.5-sonnet">GPT-3.5 Turbo (Default)</option>
                                     <optgroup label="Advanced Models (2025)">
                                         <option value="anthropic/claude-4.5-sonnet">Claude 4.5 Sonnet</option>
                                         <option value="anthropic/claude-4.5-opus">Claude 4.5 Opus</option>
