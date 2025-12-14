@@ -19,7 +19,9 @@ export default function CalendarPage() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<number | null>(null);
-    const [newEventTitle, setNewEventTitle] = useState("");
+    const [eventTitleInput, setEventTitleInput] = useState(""); // Shared input for create/edit
+    const [editingEventId, setEditingEventId] = useState<string | null>(null); // Track if editing
+
     const inputRef = useRef<HTMLInputElement>(null);
 
     const year = currentDate.getFullYear();
@@ -73,27 +75,54 @@ export default function CalendarPage() {
         return events.filter(e => e.date === dateStr);
     };
 
+    // OPEN MODAL: Create New
     const openAddModal = (day: number) => {
         setSelectedDate(day);
-        setNewEventTitle("");
+        setEditingEventId(null);
+        setEventTitleInput("");
+        setIsModalOpen(true);
+    };
+
+    // OPEN MODAL: Edit Existing
+    const openEditModal = (e: React.MouseEvent, event: CalendarEvent) => {
+        e.stopPropagation(); // Prevent triggering day click if we had one (though buttons are separate)
+        const day = parseInt(event.date.split('-')[2], 10);
+        setSelectedDate(day);
+        setEditingEventId(event.id);
+        setEventTitleInput(event.title);
         setIsModalOpen(true);
     };
 
     const closeAddModal = () => {
         setIsModalOpen(false);
         setSelectedDate(null);
-        setNewEventTitle("");
+        setEditingEventId(null);
+        setEventTitleInput("");
     };
 
-    const confirmAddEvent = () => {
-        if (selectedDate && newEventTitle.trim()) {
+    const confirmEvent = () => {
+        if (selectedDate && eventTitleInput.trim()) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
-            const newEvent: CalendarEvent = {
-                id: Date.now().toString(),
-                title: newEventTitle.trim(),
-                date: dateStr
-            };
-            const newEvents = [...events, newEvent];
+            
+            let newEvents = [...events];
+
+            if (editingEventId) {
+                // UPDATE existing
+                newEvents = newEvents.map(ev => 
+                    ev.id === editingEventId 
+                        ? { ...ev, title: eventTitleInput.trim() }
+                        : ev
+                );
+            } else {
+                // CREATE new
+                const newEvent: CalendarEvent = {
+                    id: Date.now().toString(),
+                    title: eventTitleInput.trim(),
+                    date: dateStr
+                };
+                newEvents.push(newEvent);
+            }
+
             saveEvents(newEvents);
             closeAddModal();
         }
@@ -104,6 +133,8 @@ export default function CalendarPage() {
         if (confirm("Delete this event?")) {
             const newEvents = events.filter(ev => ev.id !== eventId);
             saveEvents(newEvents);
+            // If we were editing this event, close the modal
+            if (editingEventId === eventId) closeAddModal(); 
         }
     };
 
@@ -154,9 +185,16 @@ export default function CalendarPage() {
                             
                             {/* Events */}
                             {dayEvents.map(event => (
-                                <div key={event.id} className="group/event flex items-center justify-between text-xs p-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/50">
+                                <div 
+                                    key={event.id} 
+                                    onClick={(e) => openEditModal(e, event)}
+                                    className="group/event flex items-center justify-between text-xs p-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/50 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50 transition"
+                                >
                                     <span className="truncate">{event.title}</span>
-                                    <button onClick={(e) => handleDeleteEvent(e, event.id)} className="opacity-0 group-hover/event:opacity-100 hover:text-red-500 transition-opacity">
+                                    <button 
+                                        onClick={(e) => handleDeleteEvent(e, event.id)} 
+                                        className="opacity-0 group-hover/event:opacity-100 hover:text-red-500 transition-opacity p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30"
+                                    >
                                         <Trash2 size={10} />
                                     </button>
                                 </div>
@@ -182,7 +220,9 @@ export default function CalendarPage() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
-                            <h3 className="font-semibold text-gray-900 dark:text-white">Add Event</h3>
+                            <h3 className="font-semibold text-gray-900 dark:text-white">
+                                {editingEventId ? "Edit Event" : "Add Event"}
+                            </h3>
                             <button onClick={closeAddModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
                                 <X size={20} />
                             </button>
@@ -193,10 +233,10 @@ export default function CalendarPage() {
                             <input
                                 ref={inputRef}
                                 type="text"
-                                value={newEventTitle}
-                                onChange={(e) => setNewEventTitle(e.target.value)}
+                                value={eventTitleInput}
+                                onChange={(e) => setEventTitleInput(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === "Enter") confirmAddEvent();
+                                    if (e.key === "Enter") confirmEvent();
                                     if (e.key === "Escape") closeAddModal();
                                 }}
                                 placeholder="Meeting with team..."
@@ -205,6 +245,14 @@ export default function CalendarPage() {
                         </div>
 
                         <div className="p-4 bg-gray-50 dark:bg-[#1E1E1E] flex justify-end gap-2 border-t border-gray-100 dark:border-gray-700">
+                            {editingEventId && (
+                                <button 
+                                    onClick={(e) => editingEventId && handleDeleteEvent(e, editingEventId)}
+                                    className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition mr-auto"
+                                >
+                                    Delete
+                                </button>
+                            )}
                             <button 
                                 onClick={closeAddModal}
                                 className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333] rounded transition"
@@ -212,11 +260,11 @@ export default function CalendarPage() {
                                 Cancel
                             </button>
                             <button 
-                                onClick={confirmAddEvent}
-                                disabled={!newEventTitle.trim()}
+                                onClick={confirmEvent}
+                                disabled={!eventTitleInput.trim()}
                                 className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
                             >
-                                Add Event
+                                {editingEventId ? "Save Changes" : "Add Event"}
                             </button>
                         </div>
                     </div>
