@@ -11,9 +11,11 @@
   "dependencies": {
     "firebase": "^12.6.0",
     "kuromoji": "^0.1.2",
+    "lucide-react": "^0.561.0",
     "next": "16.0.10",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "recharts": "^3.5.1",
     "wanakana": "^5.3.1"
   },
   "devDependencies": {

@@ -24,6 +24,15 @@ export interface WordProgress {
     easiness: number;
 }
 
+export interface GameResult {
+    id?: string;
+    wpm: number;
+    accuracy: number; // 0-100
+    timestamp: any; // Firestore Timestamp
+    mode?: string;
+    xpEarned?: number;
+}
+
 export interface ChatMessage {
     id?: string;
     text: string;
@@ -146,6 +155,27 @@ export async function getSRSProgress(uid: string): Promise<Record<number, WordPr
 export async function saveWordProgress(uid: string, progress: WordProgress) {
     // Save under a subcollection 'progress', doc ID = word_id
     await setDoc(doc(db, "users", uid, "progress", progress.word_id.toString()), progress);
+}
+
+export async function saveGameResult(uid: string, result: Omit<GameResult, 'timestamp'>) {
+    await addDoc(collection(db, "users", uid, "game_results"), {
+        ...result,
+        timestamp: serverTimestamp()
+    });
+}
+
+export async function getGameResults(uid: string, limitCount = 50): Promise<GameResult[]> {
+    const q = query(
+        collection(db, "users", uid, "game_results"),
+        orderBy("timestamp", "desc"),
+        limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    const results: GameResult[] = [];
+    snapshot.forEach(doc => {
+        results.push({ id: doc.id, ...doc.data() } as GameResult);
+    });
+    return results.reverse(); // Return chronological for graphs
 }
 
 export async function getLeaderboard(limitCount = 10): Promise<UserProfile[]> {

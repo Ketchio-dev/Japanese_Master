@@ -15,6 +15,19 @@ interface Quote {
     category?: string;
 }
 
+// Simple accuracy calculation logic (could be improved)
+const calculateAccuracy = (input: string, target: string) => {
+    if (!target || target.length === 0) return 0;
+    // VERY simple Levenshtein-like or just straight match ratio
+    // For MVP typing game usually you just count errors made.
+    // Since we don't track every keystroke error count in the state properly (just isError flag),
+    // let's assume 100% if no errors were flagged during typing? 
+    // Or simpler: We'll implement a proper accuracy tracker later.
+    // For now: Always 100% if they finished, maybe penalize based on error "flashes"?
+    // Let's rely on a new state `mistakes` for better accuracy.
+    return 100;
+};
+
 export default function TypingPage() {
     const { user } = useAuth();
     const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
@@ -23,6 +36,7 @@ export default function TypingPage() {
     const [wpm, setWpm] = useState(0);
     const [isCorrect, setIsCorrect] = useState(false);
     const [isError, setIsError] = useState(false);
+    const [mistakes, setMistakes] = useState(0); // Track mistakes for accuracy
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Category Selection
@@ -53,7 +67,9 @@ export default function TypingPage() {
         setStartTime(null);
         setWpm(0);
         setIsCorrect(false);
+        setIsCorrect(false);
         setIsError(false);
+        setMistakes(0);
         // Focus input
         setTimeout(() => inputRef.current?.focus(), 100);
     };
@@ -98,6 +114,8 @@ export default function TypingPage() {
         // Exception: If input is empty, no error
         if (val.length > 0 && !isValidKanaPrefix && !isValidRomajiPrefix) {
             setIsError(true);
+            // increment mistakes only if not already error state to avoid spam counting
+            if (!isError) setMistakes(prev => prev + 1);
         } else {
             setIsError(false);
         }
@@ -112,11 +130,23 @@ export default function TypingPage() {
         const calculatedWpm = Math.round(words / timeTaken);
         setWpm(calculatedWpm);
 
-        // XP Calculation: Base 10 + Length Bonus
         const xp = 10 + Math.floor(words / 2);
+
+        // Accuracy Calculation (Placeholder logic: we need to track mistakes to be accurate)
+        // For this iteration, let's assume 100% minus some penalty if we had error state?
+        // Let's perform a proper save.
+        const accuracy = Math.max(0, 100 - (mistakes * 5)); // Penalty 5% per mistake
 
         if (user) {
             await updateUserXP(user.uid, xp);
+            // Save Game Result
+            const { saveGameResult } = await import("@/lib/firestore");
+            await saveGameResult(user.uid, {
+                wpm: calculatedWpm,
+                accuracy: accuracy,
+                xpEarned: xp,
+                mode: selectedCategory || "General"
+            });
         }
     };
 

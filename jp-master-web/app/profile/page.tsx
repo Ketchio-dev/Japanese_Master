@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getUserProfile, UserProfile, updateUserDetails, checkNicknameAvailability } from "@/lib/firestore";
 import Avatar from "@/components/Avatar";
 import { useRouter } from "next/navigation";
+import StatsDashboard from "@/components/statistics/StatsDashboard";
 
 export default function ProfilePage() {
     const { user } = useAuth();
@@ -142,6 +143,10 @@ export default function ProfilePage() {
                         {saving ? "Saving..." : "Save Profile"}
                     </button>
                 </form>
+            </div>
+
+            <div className="w-full max-w-6xl mt-8">
+                {user && <StatsDashboard uid={user.uid} />}
             </div>
         </div>
     );
