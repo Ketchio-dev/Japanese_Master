@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 
 interface CalendarEvent {
     id: string;
@@ -15,6 +15,12 @@ export default function CalendarPage() {
     const workspaceId = params.workspaceId as string;
     const [currentDate, setCurrentDate] = useState(new Date());
     const [events, setEvents] = useState<CalendarEvent[]>([]);
+    
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<number | null>(null);
+    const [newEventTitle, setNewEventTitle] = useState("");
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -32,6 +38,13 @@ export default function CalendarPage() {
             setEvents(JSON.parse(savedEvents));
         }
     }, [workspaceId]);
+
+    // Focus input when modal opens
+    useEffect(() => {
+        if (isModalOpen && inputRef.current) {
+            setTimeout(() => inputRef.current?.focus(), 50);
+        }
+    }, [isModalOpen]);
 
     const saveEvents = (newEvents: CalendarEvent[]) => {
         setEvents(newEvents);
@@ -60,17 +73,29 @@ export default function CalendarPage() {
         return events.filter(e => e.date === dateStr);
     };
 
-    const handleAddEvent = (day: number) => {
-        const title = window.prompt("Enter event title:");
-        if (title) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const openAddModal = (day: number) => {
+        setSelectedDate(day);
+        setNewEventTitle("");
+        setIsModalOpen(true);
+    };
+
+    const closeAddModal = () => {
+        setIsModalOpen(false);
+        setSelectedDate(null);
+        setNewEventTitle("");
+    };
+
+    const confirmAddEvent = () => {
+        if (selectedDate && newEventTitle.trim()) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
             const newEvent: CalendarEvent = {
                 id: Date.now().toString(),
-                title,
+                title: newEventTitle.trim(),
                 date: dateStr
             };
             const newEvents = [...events, newEvent];
             saveEvents(newEvents);
+            closeAddModal();
         }
     };
 
@@ -83,7 +108,7 @@ export default function CalendarPage() {
     };
 
     return (
-        <div className="flex-1 h-screen overflow-y-auto bg-white dark:bg-[#191919] text-gray-900 dark:text-gray-100 transition-colors p-8">
+        <div className="flex-1 h-screen overflow-y-auto bg-white dark:bg-[#191919] text-gray-900 dark:text-gray-100 transition-colors p-8 relative">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
@@ -139,7 +164,7 @@ export default function CalendarPage() {
 
                             {/* Add Item Button */}
                             <button 
-                                onClick={() => handleAddEvent(day)}
+                                onClick={() => openAddModal(day)}
                                 className="mt-auto flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity pt-2"
                             >
                                 <Plus size={12} /> Add item
@@ -148,6 +173,55 @@ export default function CalendarPage() {
                     );
                 })}
             </div>
+
+            {/* Custom Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div 
+                        className="bg-white dark:bg-[#252525] w-full max-w-sm rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all scale-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+                            <h3 className="font-semibold text-gray-900 dark:text-white">Add Event</h3>
+                            <button onClick={closeAddModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="p-4">
+                            <div className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Event Title</div>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={newEventTitle}
+                                onChange={(e) => setNewEventTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") confirmAddEvent();
+                                    if (e.key === "Escape") closeAddModal();
+                                }}
+                                placeholder="Meeting with team..."
+                                className="w-full text-lg bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-gray-300 dark:placeholder:text-gray-600 text-gray-900 dark:text-white p-0"
+                            />
+                        </div>
+
+                        <div className="p-4 bg-gray-50 dark:bg-[#1E1E1E] flex justify-end gap-2 border-t border-gray-100 dark:border-gray-700">
+                            <button 
+                                onClick={closeAddModal}
+                                className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-[#333] rounded transition"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmAddEvent}
+                                disabled={!newEventTitle.trim()}
+                                className="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                            >
+                                Add Event
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
