@@ -12,7 +12,7 @@ import {
     updateUserDetails,
     WordProgress
 } from "@/lib/firestore";
-import { calculateNextReview } from "@/lib/srs";
+import { calculateNextReview, calculateRecallProbability } from "@/lib/srs";
 
 interface Vocab {
     id: number;
